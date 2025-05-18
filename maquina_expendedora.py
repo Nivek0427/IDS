@@ -9,6 +9,8 @@ cantidades = [5,5,5,5,
               5,5,5,5,
               5,5,5,4]
 
+activos = [True] * len(productos) #estado inicial: todos activos
+
 def mostrar_menu():
     #función que muestra el menú de la maquina expendedora
     
@@ -18,32 +20,51 @@ def mostrar_menu():
     print("2. inventario")
     print("3. informes")
     print("4. configuración")
-    print("0. salir")
+    print("5. salir")
     
 def comprar_producto():
     #función que permite comprar un producto
     
-    print("Productos disponibles:")
+    print("productos disponibles:")
     for i, producto in enumerate(productos):
-        print(f"{i + 1}. {producto} - ${precios[i]} (Cantidad: {cantidades[i]})")
-    
+        fila = i // 4 #obtener fila
+        columna = i % 4 #obtener columna
+        codigo = f"{fila}{columna}" #codigo del producto
+        print(f"[{codigo}]. {producto} - ${precios[i]}", end="\t")
+        if columna == 3:
+            print() #salto de linea cada 4 columns
+            
     while True:
         try:
-            opcion = int(input("Seleccione el número del producto que desea comprar (0 para cancelar): "))
-            if opcion == 0:
+            codigo = (input("Seleccione el código del producto (5 para cancelar): "))
+            
+            if codigo == '5':
                 print("Compra cancelada.")
                 return
-            elif 1 <= opcion <= len(productos):
-                if cantidades[opcion - 1] > 0:
-                    cantidades[opcion - 1] -= 1
-                    print(f"Ha comprado un(a) {productos[opcion - 1]}.")
+            
+            if len(codigo) == 2 and codigo.isdigit():
+                fila = int(codigo[0])
+                columna = int(codigo[1])
+                indice = fila * 4 + columna #pasar codigo a indice
+            
+                if 0 <= fila  <= 3 and 0 <= columna <= 3: #verificar validez del indice
+                    indice = fila * 4 + columna
+                    if not activos[indice]:
+                        print("socket en mantenimiento, producto desactivado temporalmente")
+                        return
+                    if cantidades[indice] > 0:
+                        cantidades[indice] -= 1
+                        print(f"Has comprado un(a) {productos[indice]}. Gracias por tu compra!")
+                        return
+                    else:
+                        print(f"Lo siento, {producto[indice]} no está disponible")
                 else:
-                    print(f"Lo siento, {productos[opcion - 1]} no está disponible.")
+                    print("opcion inválida, intente nuevamente")
             else:
-                print("Opción no válida. Intente nuevamente.")
+                print("codigo no valido. Intente de nuevo")
         except ValueError:
-            print("Por favor, ingrese un número válido.")
-
+            print("por favor, ingrese un número válido")
+        
 def inventario():
     #función que muestra el inventario de la maquina expendedora
     print("Inventario:")
@@ -54,16 +75,32 @@ def inventario():
 
 def modificar_inventario():
     #función que permite cambiar las cantidades de los productos
-    print("Cambiar cantidades:")
+    print("Modificar inventario:")
     for i, producto in enumerate(productos):
-        while True:
-            try:
-                nueva_cantidad = int(input(f"Ingrese la nueva cantidad para {producto} (actual: {cantidades[i]}): "))
-                cantidades[i] = nueva_cantidad
-                print(f"Cantidad de {producto} cambiada a {nueva_cantidad}.")
-                break
-            except ValueError:
-                print("Por favor, ingrese un número válido.")
+        print(f"{i + 1}. {producto} - Cantidad actual: {cantidades[i]}")
+
+    try:
+        opcion = int(input("Seleccione el número del producto que desea modificar (0 para cancelar): "))
+        if opcion == 0:
+            print("Modificación cancelada.")
+            return
+        if 1 <= opcion <= len(productos):
+            indice = opcion - 1
+            while True:
+                try:
+                    nueva_cantidad = int(input(f"Ingrese la nueva cantidad para {productos[indice]} (máximo 5): "))
+                    if 0 <= nueva_cantidad <= 5:
+                        cantidades[indice] = nueva_cantidad
+                        print(f"Cantidad de {productos[indice]} actualizada a {nueva_cantidad}.")
+                        return
+                    else:
+                        print("La cantidad debe estar entre 0 y 5.")
+                except ValueError:
+                    print("Por favor, ingrese un número válido.")
+        else:
+            print("Producto fuera de rango.")
+    except ValueError:
+        print("Por favor, ingrese un número válido.")
                 
 def agregar_productos():
     #función que permite agregar productos al inventario
@@ -75,10 +112,16 @@ def agregar_productos():
             return
         try:
             precio = float(input(f"Ingrese el precio para {producto}: "))
-            cantidad = int(input(f"Ingrese la cantidad para {producto}: "))
+            cantidad = int(input(f"Ingrese la cantidad para {producto} (maximo 5): "))
+            
+            if cantidad < 0 or cantidad > 5:
+                print("La cantidad debe estar entre 0 y 5.")
+                continue
+            
             productos.append(producto)
             precios.append(precio)
             cantidades.append(cantidad)
+            activos = [True] #agregar el nuevo producto como activo
             print(f"Producto {producto} agregado con éxito.")
         except ValueError:
             print("Por favor, ingrese valores válidos.")
@@ -179,6 +222,26 @@ def restaurar_fabricar():
                     5,5,5,5,
                     5,5,5,4]
     print("Valores restaurados a los valores de fábrica.")
+
+def desactivar_producto():
+    #función que desactiva un producto temporalmente por reparación u otra razón
+    print("Activar/Desactivar productos:")
+    for i, producto in enumerate(productos):
+        estado = "Activo" if activos[i] else "Inactivo"
+        print(f"{i + 1}. {producto} - Estado: {estado}")
+    try:
+        opcion = int(input("Ingrese el número del producto a cambiar estado (0 para cancelar): "))
+        if opcion == 0:
+            return
+        if 1 <= opcion <= len(productos):
+            indice = opcion - 1
+            activos[indice] = not activos[indice]
+            nuevo_estado = "Activo" if activos[indice] else "Inactivo"
+            print(f"{productos[indice]} ahora está: {nuevo_estado}")
+        else:
+            print("Opción fuera de rango.")
+    except ValueError:
+        print("Entrada no válida.")
     
 def configuracion():
     #función que permite cambiar la configuración de la máquina expendedora
@@ -195,6 +258,8 @@ def configuracion():
                 return
             elif opcion == 1:
                 restaurar_fabricar()
+            elif opcion == 2:
+                desactivar_producto()
             else:
                 print("Opción no válida. Intente nuevamente.")
         except ValueError:
@@ -206,7 +271,7 @@ def main():
         mostrar_menu()
         opcion = input("Seleccione una opción (0 para salir): ")
         
-        if opcion == '0':
+        if opcion == '5':
             print("¡Gracias por usar la máquina expendedora!")
             break
         elif opcion == '1':
